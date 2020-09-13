@@ -1,6 +1,5 @@
 package com.maurits;
 
-
 public final class Sudoku {
     static int SIZE = 9;
     static int SUBGRIDSIZE = 3;
@@ -9,21 +8,30 @@ public final class Sudoku {
         this.grid = new int[9][9];
     }
 
-    private static boolean checkParams(int r, int c, int value) {
-        return value >= 1 && value <= 9 && r >= 0 && r < SIZE && c >= 0 && c < SIZE;
+    private boolean isInRow(int r, int value) {
+        for (int c = 0; c < SIZE; c++) {
+            if (grid[r][c] == value) return true;
+        }
+        return false;
     }
 
-    public boolean isSolved() {
+    private boolean isInColumn(int c, int value) {
         for (int r = 0; r < SIZE; r++) {
-            for (int c = 0; c < SIZE; c++) {
-                if (grid[r][c] == 0) return false;
+            if (grid[r][c] == value) return true;
+        }
+        return false;
+    }
+
+    private boolean isInSubgrid(int r, int c, int value) {
+        int gr, gc;
+        gr = r/SUBGRIDSIZE;
+        gc = c/SUBGRIDSIZE;
+        for (int nr = gr*SUBGRIDSIZE; nr < (gr+1)*SUBGRIDSIZE; nr++) {
+            for (int nc = gc * SUBGRIDSIZE; nc < (gc + 1) * SUBGRIDSIZE; nc++) {
+                if (grid[nr][nc] == value) return true;
             }
         }
-        return true;
-    }
-
-    public void solve() {
-        boolean success = dfs();
+        return false;
     }
 
     @Override
@@ -31,8 +39,8 @@ public final class Sudoku {
         StringBuilder sb = new StringBuilder();
         for (int r = 0; r < SIZE; r++) {
             if (r != 0 && r % SUBGRIDSIZE == 0) {
-                for (int i = 0; i < SIZE; i++) {
-                    if (i != 0 && i % SUBGRIDSIZE == 0) sb.append('+');
+                for (int i = 1; i < SIZE; i++) {
+                    if (i % SUBGRIDSIZE == 0) sb.append("-+");
                     else sb.append('-');
                 }
                 sb.append("-\n");
@@ -47,51 +55,33 @@ public final class Sudoku {
         return sb.toString();
     }
 
-    private boolean dfs() {
-        boolean isSolved = true;
+    /**
+     * @return true if solve was success
+     */
+    public boolean solve() {
         for (int nr = 0; nr < SIZE; nr++) {
             for (int nc = 0; nc < SIZE; nc++) {
                 if (grid[nr][nc] == 0) {
-                    isSolved = false;
                     for (int nv = 1; nv <= 9; nv++) {
-                        if (checkValue(nr, nc, nv)) {
+                        if (isValid(nr, nc, nv)) {
                             setValue(nr, nc, nv);
-                            if (dfs()) return true;
+                            if (solve()) return true;
                             setValue(nr, nc, 0);
                         }
                     }
+                    return false;
                 }
             }
         }
-        return isSolved;
+        return true;
     }
 
     /**
-     * Checks if a value fits. Ignores the value on the current coordinate.
+     * Checks if a value fits.
      * @return true if value fits, false if value doesn't fit
      */
-    public boolean checkValue(int r, int c, int value) {
-        // check row
-        for (int nc = 0; nc < SIZE; nc++) {
-            if (nc == c) continue;
-            if (grid[r][nc] == value) return false;
-        }
-        // check column
-        for (int nr = 0; nr < SIZE; nr++) {
-            if (nr == r) continue;
-            if (grid[nr][c] == value) return false;
-        }
-        // check subgrid
-        int gr, gc;
-        gr = r/SUBGRIDSIZE;
-        gc = c/SUBGRIDSIZE;
-        for (int nr = gr*SUBGRIDSIZE; nr < (gr+1)*SUBGRIDSIZE; nr++) {
-            for (int nc = gc * SUBGRIDSIZE; nc < (gc + 1) * SUBGRIDSIZE; nc++) {
-                if (nr == r && nc == c) continue;
-                if (grid[nr][nc] == value) return false;
-            }
-        }
-        return true;
+    private boolean isValid(int r, int c, int value) {
+        return !isInRow(r, value) && !isInColumn(c, value) && !isInSubgrid(r, c, value);
     }
 
     public void setValue(int r, int c, int value) {
